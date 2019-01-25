@@ -5,6 +5,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.ViewDragHelper;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
@@ -40,6 +41,8 @@ public class SweepItemLayout extends LinearLayout {
     private boolean hasIntercept = false;
 
     private static SweepItemLayout mOpenItem;
+
+    private int newLeft = 0;
 
 
     public SweepItemLayout(Context context) {
@@ -145,7 +148,13 @@ public class SweepItemLayout extends LinearLayout {
     protected void resetStats() {
         this.currentState = CLOSE_STATE;
         this.mOpenItem = null;
-        mDragHelper.cancel();
+        this.newLeft = 0;
+
+        int childCount = getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            View childView = getChildAt(i);
+            childView.offsetLeftAndRight(moveDistance);
+        }
     }
 
 
@@ -168,20 +177,13 @@ public class SweepItemLayout extends LinearLayout {
     private void closeOpenItem() {
         if (mOpenItem == null
                 || mOpenItem == this) return;
-//
-//        if (mOpenItem.getCurrentState() == OPEN_STATE) {
-//            mOpenItem.scrollBy(-moveDistance, 0);
-//            mOpenItem.resetStats();
-////            mOpenItem.close();
-//
-//            postInvalidate();
-//        }
+        if (mOpenItem.getCurrentState() == OPEN_STATE) {
+            mOpenItem.resetStats();
+        }
     }
 
     public void close() {
         if (currentState != OPEN_STATE) return;
-//        this.scrollBy(-moveDistance, 0);
-        postInvalidate();
     }
 
     private void closeSmooth() {
@@ -217,10 +219,7 @@ public class SweepItemLayout extends LinearLayout {
 
         @Override
         public void onViewPositionChanged(@NonNull View changedView, int left, int top, int dx, int dy) {
-            int childCount = getChildCount();
-            if (childCount < 2) return;
-            final View hideView = getChildAt(1);
-            hideView.setTranslationX(left);
+            changeViewPosition(dx);
             changeStatus(Math.abs(left));
         }
 
@@ -228,7 +227,10 @@ public class SweepItemLayout extends LinearLayout {
         public int clampViewPositionHorizontal(@NonNull View child, int left, int dx) {
             final int leftBound = getPaddingLeft() - moveDistance;
             final int rightBound = 0;
+//            Log.i(TAG, "clampViewPositionHorizontal: 当前的 left" +left);
             final int newLeft = Math.min(Math.max(left, leftBound), rightBound);
+
+            Log.i(TAG, "clampViewPositionHorizontal: view 的 left" + child.getLeft());
 
             return newLeft;
         }
@@ -239,6 +241,16 @@ public class SweepItemLayout extends LinearLayout {
         super.computeScroll();
         if (mDragHelper.continueSettling(true)) {
             ViewCompat.postInvalidateOnAnimation(this);
+        }
+    }
+
+    private void changeViewPosition(int offset) {
+        int childCount = getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            final View childView = getChildAt(i);
+            if (childView != mDragHelper.getCapturedView()) {
+                childView.offsetLeftAndRight(offset);
+            }
         }
     }
 
@@ -258,7 +270,7 @@ public class SweepItemLayout extends LinearLayout {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        release();
+//        release();
     }
 
     private int obtainMoveDistance(int childCount) {
