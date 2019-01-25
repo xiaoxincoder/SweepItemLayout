@@ -12,7 +12,8 @@
             android:id="@+id/item_content"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:gravity="center"/>
+            android:gravity="center"
+            android:clickable="true"/>
 
         <LinearLayout
             android:layout_width="160dp"
@@ -24,6 +25,8 @@
                 android:layout_width="80dp"
                 android:layout_height="match_parent"
                 android:gravity="center"
+                android:text="编辑"
+                android:clickable="true"
                 android:background="@color/colorPrimary"/>
 
             <TextView
@@ -31,6 +34,8 @@
                 android:layout_width="80dp"
                 android:layout_height="match_parent"
                 android:gravity="center"
+                android:text="删除"
+                android:clickable="true"
                 android:background="@color/colorAccent"/>
 
         </LinearLayout>

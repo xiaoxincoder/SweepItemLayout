@@ -20,6 +20,8 @@ public class SweepItemLayout extends LinearLayout {
 
     private static final String TAG = "SweepItemLayout";
 
+    private static final long CLICK_INTERVAL_TIME = 500;
+
     private static final int MOVE_STATE = 1;
     private static final int OPEN_STATE = 2;
     private static final int CLOSE_STATE = 3;
@@ -41,8 +43,6 @@ public class SweepItemLayout extends LinearLayout {
     private boolean hasIntercept = false;
 
     private static SweepItemLayout mOpenItem;
-
-    private int newLeft = 0;
 
 
     public SweepItemLayout(Context context) {
@@ -109,6 +109,8 @@ public class SweepItemLayout extends LinearLayout {
         return super.dispatchTouchEvent(ev);
     }
 
+    private long mDownTime;
+
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
 
@@ -121,6 +123,7 @@ public class SweepItemLayout extends LinearLayout {
 
         if (action == MotionEvent.ACTION_DOWN) {
             mDragHelper.processTouchEvent(ev);
+            mDownTime = System.currentTimeMillis();
             shouldIntercept = false;
         }
 
@@ -133,6 +136,12 @@ public class SweepItemLayout extends LinearLayout {
             if (!hasIntercept) {
                 hasIntercept = shouldIntercept;
             }
+        }
+
+        if (action == MotionEvent.ACTION_UP) {
+            final long upTime = System.currentTimeMillis();
+            final boolean intercept = upTime - mDownTime > CLICK_INTERVAL_TIME;
+            shouldIntercept = intercept;
         }
 
         mLastX = x;
@@ -148,7 +157,6 @@ public class SweepItemLayout extends LinearLayout {
     protected void resetStats() {
         this.currentState = CLOSE_STATE;
         this.mOpenItem = null;
-        this.newLeft = 0;
 
         int childCount = getChildCount();
         for (int i = 0; i < childCount; i++) {
