@@ -57,7 +57,8 @@ public class SweepItemLayout extends LinearLayout {
 
     private void init() {
         setOrientation(HORIZONTAL);
-        mDragHelper = ViewDragHelper.create(this, 2.0f, mCallback);
+        mDragHelper = ViewDragHelper.create(this, 1.0f, mCallback);
+        mDragHelper.setMinVelocity(1000);
     }
 
     @Override
@@ -80,7 +81,9 @@ public class SweepItemLayout extends LinearLayout {
         int y = (int) ev.getY();
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                checkOpenItem(x, y);
+                closeOpenItem();
+                mDragHelper.abort();
+
                 getParent().requestDisallowInterceptTouchEvent(true);
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -135,6 +138,17 @@ public class SweepItemLayout extends LinearLayout {
         return shouldIntercept;
     }
 
+    public int getCurrentState() {
+        return currentState;
+    }
+
+    protected void resetStats() {
+        this.currentState = CLOSE_STATE;
+        this.mOpenItem = null;
+        mDragHelper.cancel();
+    }
+
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (mVelocityTracker == null) {
@@ -151,23 +165,26 @@ public class SweepItemLayout extends LinearLayout {
         return true;
     }
 
-    private void checkOpenItem(int x, int y) {
-//        boolean isMine = mDragHelper.isCapturedViewUnder(x, y);
-        if (mOpenItem == null || mOpenItem == this) return;
-//        mOpenItem.closeImmediate();
+    private void closeOpenItem() {
+        if (mOpenItem == null
+                || mOpenItem == this) return;
+//
+//        if (mOpenItem.getCurrentState() == OPEN_STATE) {
+//            mOpenItem.scrollBy(-moveDistance, 0);
+//            mOpenItem.resetStats();
+////            mOpenItem.close();
+//
+//            postInvalidate();
+//        }
     }
 
-//    public void closeImmediate() {
+    public void close() {
+        if (currentState != OPEN_STATE) return;
 //        this.scrollBy(-moveDistance, 0);
-//        invalidate();
-////        mDragHelper.settleCapturedViewAt(0, 0);
-//    }
+        postInvalidate();
+    }
 
     private void closeSmooth() {
-
-    }
-
-    private void openSmooth() {
 
     }
 
@@ -190,13 +207,10 @@ public class SweepItemLayout extends LinearLayout {
                 return;
             }
 
-            if (distance >= moveDistance / 2) {
+            if (distance >= moveDistance / 4) {
                 mDragHelper.settleCapturedViewAt(-moveDistance, 0);
-                currentState = OPEN_STATE;
-                mOpenItem = SweepItemLayout.this;
             } else {
                 mDragHelper.settleCapturedViewAt(0, 0);
-                currentState = CLOSE_STATE;
             }
             invalidate();
         }
@@ -207,6 +221,7 @@ public class SweepItemLayout extends LinearLayout {
             if (childCount < 2) return;
             final View hideView = getChildAt(1);
             hideView.setTranslationX(left);
+            changeStatus(Math.abs(left));
         }
 
         @Override
@@ -214,6 +229,7 @@ public class SweepItemLayout extends LinearLayout {
             final int leftBound = getPaddingLeft() - moveDistance;
             final int rightBound = 0;
             final int newLeft = Math.min(Math.max(left, leftBound), rightBound);
+
             return newLeft;
         }
     };
@@ -223,6 +239,19 @@ public class SweepItemLayout extends LinearLayout {
         super.computeScroll();
         if (mDragHelper.continueSettling(true)) {
             ViewCompat.postInvalidateOnAnimation(this);
+        }
+    }
+
+    private void changeStatus(int newLeft) {
+        currentState = MOVE_STATE;
+        if (newLeft >= moveDistance) {
+            currentState = OPEN_STATE;
+            mOpenItem = SweepItemLayout.this;
+        }
+
+        if (newLeft <= 0) {
+            currentState = CLOSE_STATE;
+            mOpenItem = null;
         }
     }
 
