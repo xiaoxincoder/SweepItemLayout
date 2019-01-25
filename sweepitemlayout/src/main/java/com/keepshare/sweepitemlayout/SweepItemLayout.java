@@ -1,11 +1,11 @@
 package com.keepshare.sweepitemlayout;
 
 import android.content.Context;
+import android.graphics.RectF;
 import android.support.annotation.NonNull;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.ViewDragHelper;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
@@ -132,13 +132,15 @@ public class SweepItemLayout extends LinearLayout {
             int deltaX = (int) (x - mLastX);
             int deltaY = (int) (y - mLastY);
             shouldIntercept = Math.abs(deltaX) * slope > Math.abs(deltaY)
-                    && mDragHelper.checkTouchSlop(ViewDragHelper.DIRECTION_HORIZONTAL);
+                    && mDragHelper.checkTouchSlop(ViewDragHelper.DIRECTION_HORIZONTAL)
+                    && (mOpenItem == null || mOpenItem == this);
             if (!hasIntercept) {
                 hasIntercept = shouldIntercept;
             }
         }
 
         if (action == MotionEvent.ACTION_UP) {
+
             final long upTime = System.currentTimeMillis();
             final boolean intercept = upTime - mDownTime > CLICK_INTERVAL_TIME;
             shouldIntercept = intercept;
@@ -190,13 +192,21 @@ public class SweepItemLayout extends LinearLayout {
         }
     }
 
+    private boolean pointInMoveView(float x, float y) {
+        View moveView = mDragHelper.getCapturedView();
+        if (moveView == null) return false;
+        final RectF rectF = new RectF();
+        rectF.left = moveView.getLeft();
+        rectF.top = moveView.getTop();
+        rectF.right = moveView.getRight();
+        rectF.bottom = moveView.getBottom();
+        return rectF.contains(x, y);
+    }
+
     public void close() {
         if (currentState != OPEN_STATE) return;
     }
 
-    private void closeSmooth() {
-
-    }
 
     private ViewDragHelper.Callback mCallback = new ViewDragHelper.Callback() {
         @Override
@@ -235,10 +245,7 @@ public class SweepItemLayout extends LinearLayout {
         public int clampViewPositionHorizontal(@NonNull View child, int left, int dx) {
             final int leftBound = getPaddingLeft() - moveDistance;
             final int rightBound = 0;
-//            Log.i(TAG, "clampViewPositionHorizontal: 当前的 left" +left);
             final int newLeft = Math.min(Math.max(left, leftBound), rightBound);
-
-            Log.i(TAG, "clampViewPositionHorizontal: view 的 left" + child.getLeft());
 
             return newLeft;
         }
@@ -264,9 +271,9 @@ public class SweepItemLayout extends LinearLayout {
 
     private void changeStatus(int newLeft) {
         currentState = MOVE_STATE;
+        mOpenItem = SweepItemLayout.this;
         if (newLeft >= moveDistance) {
             currentState = OPEN_STATE;
-            mOpenItem = SweepItemLayout.this;
         }
 
         if (newLeft <= 0) {
@@ -278,7 +285,6 @@ public class SweepItemLayout extends LinearLayout {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-//        release();
     }
 
     private int obtainMoveDistance(int childCount) {
